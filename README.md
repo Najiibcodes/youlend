@@ -3,6 +3,8 @@
 
 ![Demo](./images/Youlend-Demo.gif)
 
+![Demo](./images/traefik-demo.gif)
+
 ## 🚀 Quick Start
 
 ### 📥 Clone the repository
