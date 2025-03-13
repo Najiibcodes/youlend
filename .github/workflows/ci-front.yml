@@ -1,0 +1,60 @@
+name: loan-website
+
+on:
+  push:
+    paths:
+      - .github/workflows/ci-front.yml
+      - loan-website/Dockerfile
+      - loan-website/**
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build and Push Docker Image
+      run: |
+        # Define variables
+        AWS_ACCOUNT_ID="156041431760"
+        ECR_REPO="youlend"
+        REGION="${{ secrets.AWS_REGION }}"
+        IMAGE_TAG=$(git rev-parse --short HEAD)
+        ECR_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}"
+
+        # Build the image from the loan-website directory
+        docker build -t ${ECR_REPO}:${IMAGE_TAG} -f loan-website/Dockerfile loan-website/
+
+        # Tag the image for ECR
+        docker tag ${ECR_REPO}:${IMAGE_TAG} ${ECR_URL}:${IMAGE_TAG}
+        docker tag ${ECR_REPO}:${IMAGE_TAG} ${ECR_URL}:latest
+
+        # Determine retention tag
+        BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$BRANCH" = "main" ]; then
+          RETENTION_TAG="${ECR_URL}:rc-${IMAGE_TAG}"
+        else
+          RETENTION_TAG="${ECR_URL}:alpha-${IMAGE_TAG}"
+        fi
+
+        # Tag and push images
+        docker tag ${ECR_REPO}:${IMAGE_TAG} ${RETENTION_TAG}
+        docker push ${ECR_URL}:${IMAGE_TAG}
+        docker push ${ECR_URL}:latest
+        docker push ${RETENTION_TAG}
