@@ -9,7 +9,7 @@
 
 ### 📥 Clone the repository
 ```bash
-git clone https://github.com/Najiibcodes/youlend-api.git && cd youlend-api
+git clone https://github.com/Najiibcodes/youlend.git && cd youlend
 ```
 
 ⚙️ Deploy Locally
